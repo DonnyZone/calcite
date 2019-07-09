@@ -6262,6 +6262,16 @@ public class JdbcTest {
     }
   }
 
+  @Test public void testNullSafe() {
+    final Integer x = 0;
+    CalciteAssert.hr()
+        .query("select \"commission\" + 10 as s from \"hr\".\"emps\"")
+        .returns("S=1010\n" +
+                "S=510\n" +
+                "S=null\n" +
+                "S=260\n");
+  }
+
   /** Tests {@link SqlDialect}. */
   @Test public void testDialect() {
     final String[] sqls = {null};

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.expriment.RexImplementor;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -187,6 +188,8 @@ public class RexToLixTranslator {
   }
 
   Expression translate(RexNode expr, Type storageType) {
+    RexImplementor imp = new RexImplementor(program, typeFactory, inputGetter, storageType);
+    expr.accept(imp);
     final RexImpTable.NullAs nullAs =
         RexImpTable.NullAs.of(isNullable(expr));
     return translate(expr, nullAs, storageType);

@@ -6932,6 +6932,16 @@ public class JdbcTest {
         .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
   }
 
+  @Test public void testNullSafe2() {
+    CalciteAssert.hr()
+        .query("SELECT \"commission\" + 10 "
+             + "FROM \"hr\".\"emps\" ")
+        .returns("EXPR$0=1010\n" +
+                "EXPR$0=510\n" +
+                "EXPR$0=null\n" +
+                "EXPR$0=260\n");
+  }
+
   @Test public void testJsonRemove() {
     CalciteAssert.that()
         .query("SELECT JSON_REMOVE(v, '$[1]') AS c1\n"

@@ -42,7 +42,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 class RexCallSystemFunctionImplementor extends RexCallAbstractImplementor {
 
   RexCallSystemFunctionImplementor() {
-    super(null);
+    super(null, false);
   }
 
   @Override String getVariableName() {

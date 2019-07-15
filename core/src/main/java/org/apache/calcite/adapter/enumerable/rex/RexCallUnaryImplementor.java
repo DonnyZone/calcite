@@ -29,7 +29,7 @@ class RexCallUnaryImplementor extends RexCallAbstractImplementor {
   private final ExpressionType expressionType;
 
   RexCallUnaryImplementor(ExpressionType expressionType, NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
     this.expressionType = expressionType;
   }
 

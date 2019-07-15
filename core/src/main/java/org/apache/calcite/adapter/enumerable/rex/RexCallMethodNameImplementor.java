@@ -28,8 +28,9 @@ class RexCallMethodNameImplementor extends RexCallAbstractImplementor {
 
   final String methodName;
 
-  RexCallMethodNameImplementor(String methodName, NullPolicy nullPolicy) {
-    super(nullPolicy);
+  RexCallMethodNameImplementor(String methodName,
+      NullPolicy nullPolicy, boolean harmonize) {
+    super(nullPolicy, harmonize);
     this.methodName = methodName;
   }
 

@@ -38,7 +38,7 @@ class RexCallFloorImplementor extends RexCallMethodNameImplementor {
 
   RexCallFloorImplementor(String methodName, Method timestampMethod,
       Method dateMethod, NullPolicy nullPolicy) {
-    super(methodName, nullPolicy);
+    super(methodName, nullPolicy, false);
     this.timestampMethod = timestampMethod;
     this.dateMethod = dateMethod;
   }

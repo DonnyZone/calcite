@@ -28,7 +28,7 @@ class RexCallNotImplementor extends RexCallAbstractImplementor {
   private RexCallAbstractImplementor implementor;
 
   RexCallNotImplementor(RexCallAbstractImplementor implementor) {
-    super(null);
+    super(null, false);
     this.implementor = implementor;
   }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable.rex;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.function.Function1;
@@ -43,7 +44,9 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -61,7 +64,7 @@ public class InnerVisitor implements RexVisitor<RexNodeGenResult> {
   private final Expression root;
   private final RexToLixTranslator.InputGetter inputGetter;
   final BlockBuilder list;
-  private final Type storageType;
+  private Type storageType;
   private final Function1<String, RexToLixTranslator.InputGetter> correlates;
 
   public InnerVisitor(RexProgram program, JavaTypeFactory typeFactory,
@@ -87,6 +90,10 @@ public class InnerVisitor implements RexVisitor<RexNodeGenResult> {
     return list;
   }
 
+  public void setStorageType(Type storageType) {
+    this.storageType = storageType;
+  }
+
   @Override public RexNodeGenResult visitInputRef(RexInputRef inputRef) {
     Expression input = inputGetter.field(list, inputRef.getIndex(), storageType);
     ParameterExpression isNull = Expressions.parameter(Boolean.TYPE, list.newName("isNull_input"));
@@ -97,7 +104,7 @@ public class InnerVisitor implements RexVisitor<RexNodeGenResult> {
   }
 
   @Override public RexNodeGenResult visitLocalRef(RexLocalRef localRef) {
-    final RexNode rexNode = program.getExprList().get(localRef.getIndex());
+    final RexNode rexNode = deref(localRef);
     assert localRef.getType().equals(rexNode.getType());
     return rexNode.accept(this);
   }
@@ -134,11 +141,51 @@ public class InnerVisitor implements RexVisitor<RexNodeGenResult> {
   }
 
   @Override public RexNodeGenResult visitDynamicParam(RexDynamicParam dynamicParam) {
-    return null;
+    if (storageType == null) {
+      storageType = typeFactory.getJavaClass(dynamicParam.getType());
+    }
+    Expression pe = CodegenUtil.convert(
+            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
+                    Expressions.constant("?" + dynamicParam.getIndex())),
+            storageType);
+    ParameterExpression isNull =
+        Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
+    ParameterExpression value =
+        Expressions.parameter(pe.getType(), list.newName("value_dynamic_param"));
+    list.add(Expressions.declare(Modifier.FINAL, isNull, checkNull(value)));
+    list.add(Expressions.declare(Modifier.FINAL, value, value));
+    return new RexNodeGenResult(isNull, value);
   }
 
   @Override public RexNodeGenResult visitFieldAccess(RexFieldAccess fieldAccess) {
-    return null;
+    RexNode target = deref(fieldAccess.getReferenceExpr());;
+    int fieldIndex = fieldAccess.getField().getIndex();
+    String fieldName = fieldAccess.getField().getName();
+    switch (target.getKind()) {
+      case CORREL_VARIABLE:
+        if (correlates == null) {
+          throw new RuntimeException("Cannot translate " + fieldAccess + " since "
+                  + "correlate variables resolver is not defined");
+        }
+        RexToLixTranslator.InputGetter getter =
+            correlates.apply(((RexCorrelVariable) target).getName());
+        Expression input = getter.field(list, fieldIndex, storageType);
+        ParameterExpression isNull =
+            Expressions.parameter(Boolean.TYPE, list.newName("isNull_corInp"));
+        ParameterExpression value =
+            Expressions.parameter(input.getType(), list.newName("value_corInp"));
+        list.add(Expressions.declare(Modifier.FINAL, isNull, checkNull(input)));
+        list.add(Expressions.declare(Modifier.FINAL, value, input));
+        return new RexNodeGenResult(isNull, value);
+      default:
+        RexNode rxIndex = builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
+        RexNode rxName = builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
+        RexCall accessCall = (RexCall) builder.makeCall(
+                fieldAccess.getType(),
+                SqlStdOperatorTable.STRUCT_ACCESS,
+                ImmutableList.of(target, rxIndex, rxName));
+        return accessCall.accept(this);
+    }
   }
 
   @Override public RexNodeGenResult visitCorrelVariable(RexCorrelVariable correlVariable) {
@@ -175,6 +222,19 @@ public class InnerVisitor implements RexVisitor<RexNodeGenResult> {
       return RexCallImpTable.FALSE_EXPR;
     }
     return Expressions.notEqual(expr, RexCallImpTable.NULL_EXPR);
+  }
+
+  /** Dereferences an expression if it is a
+   * {@link org.apache.calcite.rex.RexLocalRef}. */
+  public RexNode deref(RexNode expr) {
+    if (expr instanceof RexLocalRef) {
+      RexLocalRef ref = (RexLocalRef) expr;
+      final RexNode e2 = program.getExprList().get(ref.getIndex());
+      assert ref.getType().equals(e2.getType());
+      return e2;
+    } else {
+      return expr;
+    }
   }
 
   RelDataType nullifyType(RelDataType type, boolean nullable) {

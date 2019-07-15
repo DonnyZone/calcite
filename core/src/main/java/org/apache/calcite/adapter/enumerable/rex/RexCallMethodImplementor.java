@@ -32,8 +32,8 @@ class RexCallMethodImplementor extends RexCallAbstractImplementor {
 
   private final Method method;
 
-  RexCallMethodImplementor(Method method, NullPolicy nullPolicy) {
-    super(nullPolicy);
+  RexCallMethodImplementor(Method method, NullPolicy nullPolicy, boolean harmonize) {
+    super(nullPolicy, harmonize);
     this.method = method;
   }
 

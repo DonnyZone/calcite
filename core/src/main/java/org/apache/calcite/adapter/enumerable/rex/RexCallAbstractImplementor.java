@@ -31,9 +31,11 @@ import java.util.List;
 abstract class RexCallAbstractImplementor implements RexCallImplementor {
 
   final NullPolicy nullPolicy;
+  final boolean harmonize;
 
-  RexCallAbstractImplementor(NullPolicy nullPolicy) {
+  RexCallAbstractImplementor(NullPolicy nullPolicy, boolean harmonize) {
     this.nullPolicy = nullPolicy;
+    this.harmonize = harmonize;
   }
 
   abstract String getVariableName();

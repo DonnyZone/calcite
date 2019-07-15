@@ -27,7 +27,7 @@ import java.util.List;
 class RexCallIsNullImplementor extends RexCallAbstractImplementor {
 
   RexCallIsNullImplementor() {
-    super(null);
+    super(null, false);
   }
 
   @Override String getVariableName() {

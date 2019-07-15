@@ -279,10 +279,10 @@ public class RexCallImpTable {
     defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
     map.put(DAYNAME, new RexCallPeriodNameImplementor("dayName",
             BuiltInMethod.DAYNAME_WITH_TIMESTAMP,
-            BuiltInMethod.DAYNAME_WITH_DATE, NullPolicy.STRICT));
+            BuiltInMethod.DAYNAME_WITH_DATE, NullPolicy.STRICT, false));
     map.put(MONTHNAME, new RexCallPeriodNameImplementor("monthName",
             BuiltInMethod.MONTHNAME_WITH_TIMESTAMP,
-            BuiltInMethod.MONTHNAME_WITH_DATE, NullPolicy.STRICT));
+            BuiltInMethod.MONTHNAME_WITH_DATE, NullPolicy.STRICT, false));
 
     map.put(IS_NULL, new RexCallIsNullImplementor());
     map.put(IS_NOT_NULL, new RexCallIsNotNullImplementor());
@@ -293,17 +293,17 @@ public class RexCallImpTable {
 
     // LIKE and SIMILAR
     final RexCallMethodImplementor likeImplementor =
-        new RexCallMethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT);
+        new RexCallMethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT, false);
     map.put(LIKE, likeImplementor);
     map.put(NOT_LIKE, likeImplementor);
     final RexCallMethodImplementor similarImplementor =
-        new RexCallMethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT);
+        new RexCallMethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT, false);
     map.put(SIMILAR_TO, similarImplementor);
     map.put(NOT_SIMILAR_TO, similarImplementor);
 
     // POSIX REGEX
     final RexCallMethodImplementor posixRegexImplementor =
-        new RexCallMethodImplementor(BuiltInMethod.POSIX_REGEX.method, NullPolicy.STRICT);
+        new RexCallMethodImplementor(BuiltInMethod.POSIX_REGEX.method, NullPolicy.STRICT, false);
     map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE, posixRegexImplementor);
     map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE, posixRegexImplementor);
     map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
@@ -318,11 +318,11 @@ public class RexCallImpTable {
     defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
     final RexCallMethodImplementor isEmptyImplementor =
-        new RexCallMethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE);
+        new RexCallMethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE, false);
     map.put(IS_EMPTY, isEmptyImplementor);
     map.put(IS_NOT_EMPTY, RexCallNotImplementor.of(isEmptyImplementor));
     final RexCallMethodImplementor isASetImplementor =
-        new RexCallMethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.NONE);
+        new RexCallMethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.NONE, false);
     map.put(IS_A_SET, isASetImplementor);
     map.put(IS_NOT_A_SET, RexCallNotImplementor.of(isASetImplementor));
     defineMethod(MULTISET_INTERSECT_DISTINCT,
@@ -336,7 +336,7 @@ public class RexCallImpTable {
             BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.NONE);
     defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
     final RexCallMethodImplementor subMultisetImplementor =
-            new RexCallMethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.NONE);
+            new RexCallMethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.NONE, false);
     map.put(SUBMULTISET_OF, subMultisetImplementor);
     map.put(NOT_SUBMULTISET_OF, RexCallNotImplementor.of(subMultisetImplementor));
 
@@ -367,18 +367,18 @@ public class RexCallImpTable {
     defineMethod(JSON_STORAGE_SIZE, BuiltInMethod.JSON_STORAGE_SIZE.method, NullPolicy.ARG0);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-    map.put(IS_JSON_VALUE, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_VALUE.method, NullPolicy.NONE));
-    map.put(IS_JSON_OBJECT, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method, NullPolicy.NONE));
-    map.put(IS_JSON_ARRAY, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method, NullPolicy.NONE));
-    map.put(IS_JSON_SCALAR, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method, NullPolicy.NONE));
+    map.put(IS_JSON_VALUE, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_VALUE.method, NullPolicy.NONE, false));
+    map.put(IS_JSON_OBJECT, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method, NullPolicy.NONE, false));
+    map.put(IS_JSON_ARRAY, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method, NullPolicy.NONE, false));
+    map.put(IS_JSON_SCALAR, new RexCallMethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method, NullPolicy.NONE, false));
     map.put(IS_NOT_JSON_VALUE, RexCallNotImplementor.of(
-            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_VALUE.method, NullPolicy.NONE)));
+            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_VALUE.method, NullPolicy.NONE, false)));
     map.put(IS_NOT_JSON_OBJECT, RexCallNotImplementor.of(
-            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method, NullPolicy.NONE)));
+            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method, NullPolicy.NONE, false)));
     map.put(IS_NOT_JSON_ARRAY, RexCallNotImplementor.of(
-            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method, NullPolicy.NONE)));
+            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method, NullPolicy.NONE, false)));
     map.put(IS_NOT_JSON_SCALAR, RexCallNotImplementor.of(
-            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method, NullPolicy.NONE)));
+            new RexCallMethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method, NullPolicy.NONE, false)));
 
     // System functions
     final RexCallSystemFunctionImplementor systemFunctionImplementor =
@@ -401,20 +401,20 @@ public class RexCallImpTable {
 
   private void defineMethod(SqlOperator operator, Method method, NullPolicy nullPolicy) {
     RexCallImplementor implementor =
-        new RexCallMethodImplementor(method, nullPolicy);
+        new RexCallMethodImplementor(method, nullPolicy, false);
     map.put(operator, implementor);
   }
 
   private void defineMethod(SqlOperator operator, String methodName, NullPolicy nullPolicy) {
     RexCallImplementor implementor =
-        new RexCallMethodNameImplementor(methodName, nullPolicy);
+        new RexCallMethodNameImplementor(methodName, nullPolicy, false);
     map.put(operator, implementor);
   }
 
   private void defineBinary(SqlOperator operator, ExpressionType expressionType,
       NullPolicy nullPolicy, String backupMethodName) {
     RexCallImplementor implementor =
-        new RexCallBinaryImplementor(expressionType, nullPolicy, backupMethodName);
+        new RexCallBinaryImplementor(nullPolicy, false, expressionType, backupMethodName);
     map.put(operator, implementor);
   }
 

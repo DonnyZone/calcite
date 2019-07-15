@@ -57,9 +57,9 @@ class RexCallBinaryImplementor extends RexCallAbstractImplementor {
   private ExpressionType expressionType;
   private final String backupMethodName;
 
-  RexCallBinaryImplementor(ExpressionType expressionType,
-      NullPolicy nullPolicy, String backupMethodName) {
-    super(nullPolicy);
+  RexCallBinaryImplementor(NullPolicy nullPolicy, boolean harmonize,
+      ExpressionType expressionType, String backupMethodName) {
+    super(nullPolicy, harmonize);
     this.expressionType = expressionType;
     this.backupMethodName = backupMethodName;
   }

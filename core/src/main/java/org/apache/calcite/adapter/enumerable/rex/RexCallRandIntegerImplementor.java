@@ -31,7 +31,7 @@ class RexCallRandIntegerImplementor extends RexCallAbstractImplementor {
   };
 
   RexCallRandIntegerImplementor(NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
   }
 
   @Override String getVariableName() {

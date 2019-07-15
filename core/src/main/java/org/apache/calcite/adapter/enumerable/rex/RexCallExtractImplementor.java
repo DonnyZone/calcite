@@ -32,7 +32,7 @@ import java.util.List;
 class RexCallExtractImplementor extends RexCallAbstractImplementor {
 
   RexCallExtractImplementor(NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
   }
 
   @Override String getVariableName() {

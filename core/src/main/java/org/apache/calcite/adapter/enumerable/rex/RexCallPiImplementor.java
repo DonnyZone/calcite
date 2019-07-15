@@ -27,7 +27,7 @@ import java.util.List;
 class RexCallPiImplementor extends RexCallAbstractImplementor {
 
   RexCallPiImplementor() {
-    super(null);
+    super(null, false);
   }
 
   @Override String getVariableName() {

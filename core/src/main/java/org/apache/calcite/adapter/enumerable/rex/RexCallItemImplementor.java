@@ -27,7 +27,7 @@ import java.util.List;
 class RexCallItemImplementor extends RexCallAbstractImplementor {
 
   RexCallItemImplementor(NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
   }
 
   @Override String getVariableName() {
@@ -44,11 +44,11 @@ class RexCallItemImplementor extends RexCallAbstractImplementor {
   private RexCallMethodImplementor getImplementor(SqlTypeName sqlTypeName) {
     switch (sqlTypeName) {
       case ARRAY:
-        return new RexCallMethodImplementor(BuiltInMethod.ARRAY_ITEM.method, nullPolicy);
+        return new RexCallMethodImplementor(BuiltInMethod.ARRAY_ITEM.method, nullPolicy, false);
       case MAP:
-        return new RexCallMethodImplementor(BuiltInMethod.MAP_ITEM.method, nullPolicy);
+        return new RexCallMethodImplementor(BuiltInMethod.MAP_ITEM.method, nullPolicy, false);
       default:
-        return new RexCallMethodImplementor(BuiltInMethod.ANY_ITEM.method, nullPolicy);
+        return new RexCallMethodImplementor(BuiltInMethod.ANY_ITEM.method, nullPolicy, false);
     }
   }
 }

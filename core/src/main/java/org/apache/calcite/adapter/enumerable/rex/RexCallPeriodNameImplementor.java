@@ -31,8 +31,8 @@ class RexCallPeriodNameImplementor extends RexCallMethodNameImplementor {
   private final BuiltInMethod dateMethod;
 
   RexCallPeriodNameImplementor(String methodName, BuiltInMethod timestampMethod,
-                               BuiltInMethod dateMethod, NullPolicy nullPolicy) {
-    super(methodName, nullPolicy);
+      BuiltInMethod dateMethod, NullPolicy nullPolicy, boolean harmonize) {
+    super(methodName, nullPolicy, harmonize);
     this.timestampMethod = timestampMethod;
     this.dateMethod = dateMethod;
   }

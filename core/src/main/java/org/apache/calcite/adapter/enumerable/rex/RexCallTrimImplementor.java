@@ -29,7 +29,7 @@ import java.util.List;
 class RexCallTrimImplementor extends RexCallAbstractImplementor {
 
   RexCallTrimImplementor(NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
   }
 
   @Override String getVariableName() {

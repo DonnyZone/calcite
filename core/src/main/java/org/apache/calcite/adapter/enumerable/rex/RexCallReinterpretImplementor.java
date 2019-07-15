@@ -26,7 +26,7 @@ import java.util.List;
 class RexCallReinterpretImplementor extends RexCallAbstractImplementor {
 
   RexCallReinterpretImplementor(NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
   }
 
   @Override String getVariableName() {

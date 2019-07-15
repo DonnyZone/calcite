@@ -29,7 +29,7 @@ public class RexCallReflectiveImplementor extends RexCallAbstractImplementor {
   protected final Method method;
 
   RexCallReflectiveImplementor(Method method, NullPolicy nullPolicy) {
-    super(nullPolicy);
+    super(nullPolicy, false);
     this.method = method;
   }
 

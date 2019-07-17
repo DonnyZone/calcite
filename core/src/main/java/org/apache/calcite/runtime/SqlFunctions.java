@@ -1713,6 +1713,16 @@ public class SqlFunctions {
         : (Integer) cannotConvert(o, int.class);
   }
 
+  //ReflectiveSchemaTest#testDateCanCompare
+  //StorageType = Integer, it is not reasonable to call
+  //org.apache.calcite.runtime.SqlFunctions.toInt(current1[1]) (int)
+  public static Integer toIntOptional(Object o) {
+    if (o == null) {
+      return null;
+    }
+    return toInt(o);
+  }
+
   /** Converts the Java type used for UDF parameters of SQL TIMESTAMP type
    * ({@link java.sql.Timestamp}) to internal representation (long).
    *

@@ -897,6 +897,27 @@ public class JdbcAdapterTest {
         .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-734">[CALCITE-734]
+   * Push GROUPING SETS to underlying SQL via JDBC adapter</a>. */
+  @Test public void testGroupingSets() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
+        .query("select \"store_id\", count(*) "
+            + "from \"expense_fact\" group by cube(\"store_id\")")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT()])\n"
+            + "    JdbcTableScan(table=[[foodmart, expense_fact]])")
+        .runs()
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+            + " ORDER BY \"time_id\" ROWS BETWEEN 1 FOLLOWING"
+            + " AND 10 FOLLOWING) AS \"last_version\"\n"
+            + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;

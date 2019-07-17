@@ -861,6 +861,13 @@ public class SqlDialect {
   }
 
   /**
+   * Returns whether the dialect supports Grouping Sets
+   */
+  public boolean supportsGroupingSets() {
+    return true;
+  }
+
+  /**
    * Returns whether this dialect supports "WITH ROLLUP" in the "GROUP BY"
    * clause.
    *

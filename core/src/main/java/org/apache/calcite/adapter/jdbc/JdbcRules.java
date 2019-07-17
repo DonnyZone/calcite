@@ -654,11 +654,24 @@ public class JdbcRules {
           out, relBuilderFactory, "JdbcAggregateRule");
     }
 
+    /** Check whether it can be converted.*/
+    private boolean canConvert(Aggregate agg) {
+      final SqlDialect dialect = out.dialect;
+      if (agg.getGroupSets().size() != 1
+          && !dialect.supportsGroupingSets()) {
+        return false;
+      }
+      for (AggregateCall aggCall : agg.getAggCallList()) {
+        if (!canImplement(aggCall.getAggregation(), dialect)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     public RelNode convert(RelNode rel) {
       final Aggregate agg = (Aggregate) rel;
-      if (agg.getGroupSets().size() != 1) {
-        // GROUPING SETS not supported; see
-        // [CALCITE-734] Push GROUPING SETS to underlying SQL via JDBC adapter
+      if (!canConvert(agg)) {
         return null;
       }
       final RelTraitSet traitSet =
@@ -692,7 +705,7 @@ public class JdbcRules {
         throws InvalidRelException {
       super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
-      assert this.groupSets.size() == 1 : "Grouping sets not supported";
+ //     assert this.groupSets.size() == 1 : "Grouping sets not supported";
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
       for (AggregateCall aggCall : aggCalls) {
         if (!canImplement(aggCall.getAggregation(), dialect)) {

@@ -581,6 +581,12 @@ public class ReflectiveSchemaTest {
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+        .planContains(
+            "final Long input_value = current.wrapperLong;")
+        .planContains(
+            "final boolean input_isNull = input_value == null;")
+        .planContains(
+            "return input_isNull ? (Long) null : Long.valueOf(input_isNull ? 0L : input_value / Long.valueOf(current.primitiveLong));")
         .returns("C=null\n");
   }
 
@@ -589,6 +595,12 @@ public class ReflectiveSchemaTest {
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+        .planContains(
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+        .planContains(
+            "final boolean input_isNull = input_value == null;")
+        .planContains(
+            "return input_isNull ? (Long) null : Long.valueOf(input_isNull ? 0L : input_value / input_value);")
         .returns("C=null\n");
   }
 
@@ -598,6 +610,14 @@ public class ReflectiveSchemaTest {
     with.query("select \"wrapperLong\" / \"wrapperLong\"\n"
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+        .planContains(
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+        .planContains(
+            "final boolean input_isNull = input_value == null;")
+        .planContains(
+            "final long binary_call_value = input_isNull ? 0L : input_value / input_value;")
+        .planContains(
+            "return input_isNull ? (Long) null : Long.valueOf(input_isNull ? 0L : binary_call_value + binary_call_value);")
         .returns("C=null\n");
   }
 

@@ -101,8 +101,34 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   private final RexToLixTranslator parent;
   private final Function1<String, InputGetter> correlates;
 
+  /**
+   * Map from RexLiteral's variable name to its literal, which is often a
+   * ({@link org.apache.calcite.linq4j.tree.ConstantExpression}))
+   * It is used in the some {@link RexCall}'s implementors, such as
+   * {@link org.apache.calcite.adapter.enumerable.rex.ExtractImplementor}
+   */
   private final Map<Expression, Expression> literalMap = new HashMap<>();
+
+  /**
+   * For {@link RexCall}, keep the list of its operand's {@link Result}.
+   * It is useful when creating a {@link CallImplementor},
+   * see {@link RexImpTable#createImplementor(NotNullImplementor, NullPolicy, boolean)}
+   */
   private final Map<RexCall, List<Result>> callOperandResultMap = new HashMap<>();
+
+  /**
+   * Map from RexNode under specific storage type to its Result,
+   * to avoid generating duplicate code.
+   * For {@link RexInputRef}, {@link RexDynamicParam} and {@link RexFieldAccess}
+   */
+  private final Map<Pair<RexNode, Type>, Result> rexWithStorageTypeResultMap = new HashMap<>();
+
+  /**
+   * Map from RexNode to its Result, to avoid generating duplicate code
+   * For {@link RexLiteral} and {@link RexCall}
+   */
+  private final Map<RexNode, Result> rexResultMap = new HashMap<>();
+
   private Type currentStorageType = null;
 
   private static Method findMethod(
@@ -137,6 +163,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitInputRef(RexInputRef inputRef) {
+    final Pair<RexNode, Type> key = Pair.of(inputRef, currentStorageType);
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
     final Expression valueExpression = inputGetter.field(
         list, inputRef.getIndex(), currentStorageType);
     final ParameterExpression valueVariable =
@@ -148,6 +178,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         Expressions.parameter(
             Boolean.TYPE, list.newName("input_isNull"));
     list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexWithStorageTypeResultMap.put(key, result);
     return new Result(isNullVariable, valueVariable);
   }
 
@@ -156,6 +188,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitLiteral(RexLiteral literal) {
+    if (rexResultMap.containsKey(literal)) {
+      return rexResultMap.get(literal);
+    }
     final Type javaClass = typeFactory.getJavaClass(literal.getType());
     final Expression valueExpression;
     final Expression isNullExpression;
@@ -176,10 +211,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         Boolean.TYPE, list.newName("literal_isNull"));
     list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
     literalMap.put(valueVariable, valueExpression);
-    return new Result(isNullVariable, valueVariable);
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexResultMap.put(literal, result);
+    return result;
   }
 
   @Override public Result visitCall(RexCall call) {
+    if (rexResultMap.containsKey(call)) {
+      return rexResultMap.get(call);
+    }
     final SqlOperator operator = call.getOperator();
     final RexCallImplementor implementor =
         RexImpTable.INSTANCE.getRexCallImplementor(operator);
@@ -201,7 +241,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     callOperandResultMap.put(call, operandResults);
     currentStorageType = originalStorageType;
-    return implementor.implement(this, call, operandResults);
+    final Result result = implementor.implement(this, call, operandResults);
+    rexResultMap.put(call, result);
+    return result;
   }
 
   private Result toInnerStorageType(final Result result, final Type storageType) {
@@ -220,6 +262,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitDynamicParam(RexDynamicParam dynamicParam) {
+    final Pair<RexNode, Type> key = Pair.of(dynamicParam, currentStorageType);
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
     final Type storageType = currentStorageType != null
         ? currentStorageType : typeFactory.getJavaClass(dynamicParam.getType());
     final Expression valueExpression = EnumUtils.doConvert(
@@ -232,10 +278,16 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final ParameterExpression isNullVariable =
         Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
     list.add(Expressions.declare(Modifier.FINAL, isNullVariable, checkNull(valueVariable)));
-    return new Result(isNullVariable, valueVariable);
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexWithStorageTypeResultMap.put(key, result);
+    return result;
   }
 
   @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {
+    final Pair<RexNode, Type> key = Pair.of(fieldAccess, currentStorageType);
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
     final RexNode target = deref(fieldAccess.getReferenceExpr());
     int fieldIndex = fieldAccess.getField().getIndex();
     String fieldName = fieldAccess.getField().getName();
@@ -260,7 +312,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
           RexImpTable.TRUE_EXPR,
           checkNull(valueVariable));
       list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
-      return new Result(isNullVariable, valueVariable);
+      final Result result1 = new Result(isNullVariable, valueVariable);
+      rexWithStorageTypeResultMap.put(key, result1);
+      return result1;
     default:
       RexNode rxIndex =
           builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
@@ -269,7 +323,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       RexCall accessCall = (RexCall) builder.makeCall(
           fieldAccess.getType(), SqlStdOperatorTable.STRUCT_ACCESS,
           ImmutableList.of(target, rxIndex, rxName));
-      return accessCall.accept(this);
+      final Result result2 = accessCall.accept(this);
+      rexWithStorageTypeResultMap.put(key, result2);
+      return result2;
     }
   }
 

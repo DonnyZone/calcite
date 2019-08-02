@@ -104,28 +104,27 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /**
    * Map from RexLiteral's variable name to its literal, which is often a
    * ({@link org.apache.calcite.linq4j.tree.ConstantExpression}))
-   * It is used in the some {@link RexCall}'s implementors, such as
-   * {@link org.apache.calcite.adapter.enumerable.rex.ExtractImplementor}
+   * It is used in the some {@code RexCall}'s implementors, such as
+   * {@code ExtractImplementor}
    */
   private final Map<Expression, Expression> literalMap = new HashMap<>();
 
   /**
-   * For {@link RexCall}, keep the list of its operand's {@link Result}.
-   * It is useful when creating a {@link CallImplementor},
-   * see {@link RexImpTable#createImplementor(NotNullImplementor, NullPolicy, boolean)}
+   * For {@code RexCall}, keep the list of its operand's {@code Result}.
+   * It is useful when creating a {@code CallImplementor}
    */
   private final Map<RexCall, List<Result>> callOperandResultMap = new HashMap<>();
 
   /**
    * Map from RexNode under specific storage type to its Result,
    * to avoid generating duplicate code.
-   * For {@link RexInputRef}, {@link RexDynamicParam} and {@link RexFieldAccess}
+   * For {@code RexInputRef}, {@code RexDynamicParam} and {@code RexFieldAccess}
    */
   private final Map<Pair<RexNode, Type>, Result> rexWithStorageTypeResultMap = new HashMap<>();
 
   /**
    * Map from RexNode to its Result, to avoid generating duplicate code
-   * For {@link RexLiteral} and {@link RexCall}
+   * For {@code RexLiteral} and {@code RexCall}
    */
   private final Map<RexNode, Result> rexResultMap = new HashMap<>();
 

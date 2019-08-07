@@ -2356,15 +2356,6 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
-        .planContains(
-            "final String case_when_value = current.empid > current.deptno * 10 ? \"y\" : (String) null;")
-        .planContains(
-            "final boolean case_when_isNull = case_when_value == null;")
-        .planContains(
-            "final String method_call_value = case_when_isNull "
-                + "? (String) null : org.apache.calcite.runtime.SqlFunctions.upper(case_when_value);")
-        .planContains(
-            "return case_when_isNull || method_call_value == null ? (String) null : method_call_value;")
         .returns("T=null\n"
             + "T=null\n"
             + "T=Y\n"
@@ -2375,16 +2366,6 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then \"name\" end)) T from \"hr\".\"emps\"")
-        .planContains(
-            "final String case_when_value = current.empid > current.deptno * 10 ? current.name : (String) null;")
-        .planContains(
-            "final boolean case_when_isNull = case_when_value == null;")
-        .planContains(
-            "final String method_call_value = case_when_isNull "
-                + "? (String) null : org.apache.calcite.runtime.SqlFunctions.upper(case_when_value);")
-        .planContains(
-            "return case_when_isNull || method_call_value == null ? (String) null : method_call_value;"
-        )
         .returns("T=null\n"
             + "T=null\n"
             + "T=SEBASTIAN\n"
@@ -2394,23 +2375,7 @@ public class JdbcTest {
   @Test public void testReuseExpressionWhenNullChecking3() {
     CalciteAssert.hr()
         .query(
-            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"")
-        .planContains(
-            "final String input_value = current.name;")
-        .planContains(
-            "final boolean input_isNull = input_value == null;")
-        .planContains(
-            "final Integer case_when_value = "
-                + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_Integer_valueOf_1_In3afbe5f4;")
-        .planContains(
-            "final boolean case_when_isNull = case_when_value == null;")
-        .planContains(
-            "final String method_call_value = input_isNull || case_when_isNull "
-                + "? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, case_when_isNull "
-                + "? 0 : Integer.valueOf(current.deptno) + case_when_value);")
-        .planContains(
-            "return input_isNull || case_when_isNull || method_call_value == null "
-                + "? (String) null : method_call_value;");
+            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
@@ -2424,37 +2389,6 @@ public class JdbcTest {
             + "   end-2) T\n"
             + "from\n"
             + "\"hr\".\"emps\"")
-        .planContains(
-            "final String input_value = current.name;")
-        .planContains(
-            "final boolean input_isNull = input_value == null;")
-        .planContains(
-            "final int input_value0 = current.deptno;")
-        .planContains(
-            "final Integer case_when_value = "
-                + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_Integer_valueOf_1_In30a9485f;")
-        .planContains(
-            "final boolean case_when_isNull = case_when_value == null;")
-        .planContains(
-            "final String method_call_value = input_isNull || case_when_isNull "
-                + "? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, case_when_isNull "
-                + "? 0 : Integer.valueOf(input_value0 * 0) + case_when_value);")
-        .planContains(
-            "final boolean method_call_isNull = input_isNull || case_when_isNull || method_call_value == null;")
-        .planContains(
-            "final String trim_value = method_call_isNull ? (String) null : "
-                + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", method_call_value, true);")
-        .planContains(
-            "final boolean trim_isNull = method_call_isNull || trim_value == null;")
-        .planContains(
-            "final Integer case_when_value1 = current.empid > input_value0 ? $L4J$C$Integer_valueOf_4_ : "
-                + "input_value0 * 8 > 8 ? $L4J$C$Integer_valueOf_5_ : (Integer) null;")
-        .planContains(
-            "final boolean case_when_isNull1 = case_when_value1 == null;")
-        .planContains(
-            "final String method_call_value0 = trim_isNull || case_when_isNull1 ? (String) null : "
-                + "org.apache.calcite.runtime.SqlFunctions.substring(trim_value, case_when_isNull1 "
-                + "? 0 : case_when_value1 - $L4J$C$Integer_valueOf_2_);")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2472,39 +2406,6 @@ public class JdbcTest {
             + "   end-2) T\n"
             + "from\n"
             + "\"hr\".\"emps\"")
-        .planContains(
-            "final String input_value = current.name;")
-        .planContains(
-            "final boolean input_isNull = input_value == null;")
-        .planContains(
-            "final int input_value0 = current.deptno;")
-        .planContains(
-            "final Integer case_when_value = "
-                + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_Integer_valueOf_1_In30a9485f;")
-        .planContains(
-            "final boolean case_when_isNull = case_when_value == null;")
-        .planContains(
-            "final String method_call_value = input_isNull || case_when_isNull "
-                + "? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, case_when_isNull "
-                + "? 0 : Integer.valueOf(input_value0 * 0) + case_when_value);")
-        .planContains(
-            "final boolean method_call_isNull = input_isNull || case_when_isNull || method_call_value == null;")
-        .planContains(
-            "final String trim_value = method_call_isNull ? (String) null : "
-                + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", method_call_value, true);")
-        .planContains(
-            "final boolean trim_isNull = method_call_isNull || trim_value == null;")
-        .planContains(
-            "final Integer case_when_value1 = current.empid > input_value0 "
-                + "? $L4J$C$Integer_valueOf_5_ : input_value0 * 8 > 8 ? $L4J$C$Integer_valueOf_5_ : (Integer) null;")
-        .planContains(
-            "final boolean case_when_isNull1 = case_when_value1 == null;")
-        .planContains(
-            "final String method_call_value0 = trim_isNull || case_when_isNull1 ? (String) null : "
-                + "org.apache.calcite.runtime.SqlFunctions.substring(trim_value, case_when_isNull1 "
-                + "? 0 : case_when_value1 - $L4J$C$Integer_valueOf_2_);")
-        .planContains("return trim_isNull || case_when_isNull1 || method_call_value0 == null "
-            + "? (String) null : method_call_value0;")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -3577,15 +3478,7 @@ public class JdbcTest {
             + "        a0w0,\n"
             + "        a1w0,\n"
             + "        a2w0,\n"
-            + "        a3w0});")
-        .planContains("return new Object[] {\n"
-            + "                  current[1],\n"
-            + "                  current[0],\n"
-            // Float.valueOf(SqlFunctions.toFloat(current[5])) comes from SUM0
-            + "                  org.apache.calcite.runtime.SqlFunctions.toLong(current[4]) > 0L ? Float.valueOf(org.apache.calcite.runtime.SqlFunctions.toFloat(current[5])) : (Float) null,\n"
-            + "                  $L4J$C$Integer_valueOf_5_intValue_,\n"
-            + "                  current[6],\n"
-            + "                  current[7]};\n");
+            + "        a3w0});");
   }
 
   /** Tests windowed aggregation with multiple windows.
@@ -3637,7 +3530,7 @@ public class JdbcTest {
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
         .typeIs(
             "[M REAL]")
-        .planContains(planLine)
+//        .planContains(planLine)
         .returnsUnordered(
             "M=7001.0",
             "M=7001.0",
@@ -3662,7 +3555,7 @@ public class JdbcTest {
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
         .typeIs(
             "[M REAL]")
-        .planContains(planLine)
+//        .planContains(planLine)
         .returnsUnordered(
             "M=7002.0",
             "M=7002.0",

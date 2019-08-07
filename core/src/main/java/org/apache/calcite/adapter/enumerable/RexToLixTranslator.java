@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.rex.RexCallImplementor;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -67,6 +68,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
@@ -220,6 +222,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return rexResultMap.get(call);
     }
     final SqlOperator operator = call.getOperator();
+    if (operator == CASE) {
+      return implementCaseWhen(call);
+    }
     final RexCallImplementor implementor =
         RexImpTable.INSTANCE.getRexCallImplementor(operator);
     if (implementor == null) {
@@ -243,6 +248,107 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final Result result = implementor.implement(this, call, operandResults);
     rexResultMap.put(call, result);
     return result;
+  }
+
+  /**
+   * The CASE operator is SQL’s way of handling if/then logic.
+   * Different with other {@code RexCall}s, it is not safe to
+   * implement its operands first.
+   * For example: {@code
+   *   select case when s=0 then false
+   *          else 100/s > 0 end
+   *   from (values (1),(0)) ax(s);
+   * }
+   */
+  private Result implementCaseWhen(RexCall call) {
+    final Type returnType = typeFactory.getJavaClass(call.getType());
+    final ParameterExpression valueVariable =
+        Expressions.parameter(returnType,
+            list.newName("case_when_value"));
+    list.add(Expressions.declare(0, valueVariable, null));
+    final List<RexNode> operandList = call.getOperands();
+    implementRecursively(this, operandList, valueVariable, 0);
+    final Expression isNullExpression = checkNull(valueVariable);
+    final ParameterExpression isNullVariable =
+        Expressions.parameter(
+            Boolean.TYPE, list.newName("case_when_isNull"));
+    list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexResultMap.put(call, result);
+    return result;
+  }
+
+  /**
+   * Case statements of the form:
+   * {@code CASE WHEN a THEN b [WHEN c THEN d]* [ELSE e] END}.
+   * When {@code a = true}, returns {@code b};
+   * when {@code c = true}, returns {@code d};
+   * else returns {@code e}.
+   *
+   * We generate code that looks like: {@code
+   *      int case_when_value;
+   *      ......code for a......
+   *      if (!a_isNull && a_value) {
+   *          ......code for b......
+   *          case_when_value = res(b_isNull, b_value);
+   *      } else {
+   *          ......code for c......
+   *          if (!c_isNull && c_value) {
+   *              ......code for d......
+   *              case_when_value = res(d_isNull, d_value);
+   *          } else {
+   *              ......code for e......
+   *              case_when_value = res(e_isNull, e_value);
+   *          }
+   *      }
+   * }
+   */
+  private void implementRecursively(final RexToLixTranslator currentTranslator,
+      final List<RexNode> operandList, final ParameterExpression valueVariable, int pos) {
+    final BlockBuilder currentBlockBuilder = currentTranslator.getBlockBuilder();
+    // [ELSE] clause
+    if (pos == operandList.size() - 1) {
+      Expression res = currentTranslator.translate(operandList.get(pos));
+      currentBlockBuilder.add(
+          Expressions.statement(
+              Expressions.assign(valueVariable,
+                  RexToLixTranslator.convert(res, valueVariable.getType()))));
+      return;
+    }
+    // Condition code: !a_isNull && a_value
+    final RexNode testerNode = operandList.get(pos);
+    final Result testerResult = testerNode.accept(currentTranslator);
+    final Expression tester = Expressions.andAlso(
+        Expressions.not(testerResult.isNullVariable),
+        testerResult.valueVariable);
+    // Code for {if} branch
+    final RexNode ifTrueNode = operandList.get(pos + 1);
+    final BlockBuilder ifTrueBlockBuilder =
+        new BlockBuilder(true, currentBlockBuilder);
+    final RexToLixTranslator ifTrueTranslator =
+        currentTranslator.setBlock(ifTrueBlockBuilder);
+    final Expression ifTrueRes = ifTrueTranslator.translate(ifTrueNode);
+    // Assign the value: case_when_value = ifTrueRes
+    ifTrueBlockBuilder.add(
+        Expressions.statement(
+            Expressions.assign(valueVariable,
+                RexToLixTranslator.convert(ifTrueRes, valueVariable.getType()))));
+    final BlockStatement ifTrue = ifTrueBlockBuilder.toBlock();
+    // There is no [ELSE] clause
+    if (pos + 1 == operandList.size() - 1) {
+      currentBlockBuilder.add(
+          Expressions.ifThen(tester, ifTrue));
+      return;
+    }
+    // Generate code for {else} branch recursively
+    final BlockBuilder ifFalseBlockBuilder =
+        new BlockBuilder(true, currentBlockBuilder);
+    final RexToLixTranslator ifFalseTranslator =
+        currentTranslator.setBlock(ifFalseBlockBuilder);
+    implementRecursively(ifFalseTranslator, operandList, valueVariable, pos + 2);
+    final BlockStatement ifFalse = ifFalseBlockBuilder.toBlock();
+    currentBlockBuilder.add(
+        Expressions.ifThenElse(tester, ifTrue, ifFalse));
   }
 
   private Result toInnerStorageType(final Result result, final Type storageType) {
